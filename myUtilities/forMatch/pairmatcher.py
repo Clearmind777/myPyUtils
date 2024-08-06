@@ -4,16 +4,18 @@ from typing import Union, Literal
 class PairMatcher:
 
 	s = ''
-	braket = ''
+	bl = ''
+	br = ''
 
 
-	def __init__(self, s:str='', b:str='()'):	# 双下划线开头来定义私有方法
+	def __init__(self, s:str='', bl:str='(', br:str=')'):	# 双下划线开头来定义私有方法
 		self.s = s
-		self.braket = b
+		self.bl = bl
+		self.br = br
 	
 
 
-	def getChIdx(self, ch:str, s:str)->list:
+	def getChIdx(self, s:str, ch:str)->list:
 		idxs = []
 		idx = -1
 		while True:
@@ -24,9 +26,9 @@ class PairMatcher:
 
 
 
-	def getBktIdx(self, s:str, bkt:str) -> dict:
-		if bkt is None: bkt = self.braket
-		return {'L': self.getChIdx(ch=bkt[0], s=s), 'R': self.getChIdx(ch=bkt[1], s=s)}
+	def getBktIdx(self, s:str, bl:str, br:str) -> dict:
+		if bl is None and lr is None: bl = self.bl; br = self.br
+		return {'L': self.getChIdx(s=s, ch=bl), 'R': self.getChIdx(s=s, ch=br)}
 	
 
 
@@ -39,9 +41,23 @@ class PairMatcher:
 
 
 
-	def getPair(self, s:str=None, b:str=None, out:Literal['default', 'sorted']='default')-> Union[list[tuple], list[int]]:
+	def getPair(self, s:str=None, bl:str=None, br:str=None, out:Literal['default', 'sorted']='default')-> Union[list[tuple], list[int]]:
+		pair = []
 		if s is None: s = self.s
-		if b is None: b = self.braket
+		if bl is None and br is None: br = self.br; bl = self.bl
+		if bl == br: 
+			print(s)
+			idxs = self.getChIdx(s, bl)
+			print(idxs)
+			if len(idxs) % 2 == 1: print('ERR: Upaired Braket.'); exit(1)
+			if out == 'sorted': return idxs
+			else:
+				for i in range(0, len(idxs), 2):
+					pair.append((idxs[i], idxs[i + 1]))
+				return pair
+
+
+
 		"""
 		这个函数用于找到一个字符串中所有字符对的索引对
 		原理：
@@ -54,10 +70,8 @@ class PairMatcher:
 	2   4		3   1  -1
 	3   6		5   3   1
 			从最里边的左括号开始，匹配对应的右括号(即找到最邻近右括号，找到后其他dist舍弃)"""
-		idxs = self.getBktIdx(s, bkt=b)
+		idxs = self.getBktIdx(s, bl, br)
 		if not self.checkPaired(idxs): print('ERR: Upaired Braket.'); exit(1)
-
-		pair = []
 		lt_rv = np.array(idxs['L'][::-1])
 		rt = np.array(idxs['R'])
 		dist = np.subtract.outer(rt, lt_rv).astype(float)					# 得到括号间的字符距离(右括号 - 左括号)
@@ -78,3 +92,9 @@ if __name__ == '__main__':
 	yy = PairMatcher(ss)
 	print(yy.getPair(out='sorted'))
 	print(' '.join([ss[i] for i in yy.getPair(out='sorted')]))
+
+	ss = 'fasfdsa"hello" "wofada"  " "'
+	yy = PairMatcher(ss, bl='"', br ='"')
+	print(yy.getPair())
+	print(' '.join([ss[i] for i in yy.getPair(out='sorted')]))
+
