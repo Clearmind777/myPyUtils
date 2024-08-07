@@ -68,9 +68,10 @@ class PairMatcher:
 					assert bl in self.parter.values(), "ERROR: unmatchable pairs."
 					self.br = self.getParter(bl)
 				else:
-					self.bl = bl[:int(len(bl) / 2) - 1]
+					self.bl = bl[:int(len(bl) / 2)]
 					assert self.bl == self.getParter(bl[int(len(bl) / 2):]), "ERROR: unmatchable pairs."
 					self.br = bl[int(len(bl) / 2):]
+
 
 	def getParter(self, m:str, identical:bool=False)->str:
 		if not identical:
@@ -144,11 +145,11 @@ class PairMatcher:
 
 if __name__ == '__main__':
 	ss = 'fasfdsa() ()(()(fa(fa)fa()((asdf)fdas)))'
-	yy = PairMatcher(ss, bl='((', br='))')
+	yy = PairMatcher(ss, bl='((')
 	print(yy.getPair(out='sorted'))
 	print(' '.join([ss[i] for i in yy.getPair(out='sorted')]))
 
-	yy3 = PairMatcher(ss, bl='(')
+	yy3 = PairMatcher(ss, bl='()')
 	print(yy3.getPair(out='sorted'))
 	print(' '.join([ss[i] for i in yy3.getPair(out='sorted')]))
 
