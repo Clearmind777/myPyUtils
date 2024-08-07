@@ -12,12 +12,13 @@ class PairMatcher:
 	ofst = 1
 	parter = {'(': ')', ')': '(','[': ']', ']': '[', '{': '}', '}': '{', '<': '>', '>': '<'}
 
-	def __init__(self, s:str, bl:str, br:str=None, identical:bool=False)->None:	# 双下划线开头来定义私有方法
+	def __init__(self, s:str, bl:str, br_inbl:str|bool=False, identical:bool=False)->None:	# 双下划线开头来定义私有方法
 		if not (isinstance(s, str) or isinstance(bl, str) or 
-		  isinstance(br, str) or isinstance(identical, bool)): raise TypeError
-		if (not s) or (not bl): raise ValueError
+		  (isinstance(br, str) or isinstance(br, bool)) or 
+		  isinstance(identical, bool)): raise TypeError
+		if (not s) or (not bl) or br_inbl == '': raise ValueError('s, bl, br cannot be empty string')
 		self.s = s
-		self.setParter(bl, br, identical=identical)
+		self.setParter(bl, br_inbl, identical=identical)
 
 	# def _isValid_initProcess(self, func: Callable[..., T], *args, **kwargs)->T:
 	# 	# 获取接收函数的参数签名
@@ -54,23 +55,20 @@ class PairMatcher:
 	def setOffset(self, ch:str)->None:
 		if len(ch) != 1:self.ofst = len(ch) - 1
 
-	def setParter(self, bl:str, br:str, identical:bool=False)->None:
+	def setParter(self, bl:str, br_inbl:str|bool=True, identical:bool=False)->None:
 		self.bl = bl
-		if br: 
-			assert bl == self.getParter(br), "ERROR: unmatchable pairs."
-			self.br = br
-		else:
-			if identical:
-				self.br = self.bl
-			else:
-				if self.isOneCh(bl):
-					self.bl = bl
-					assert bl in self.parter.values(), "ERROR: unmatchable pairs."
-					self.br = self.getParter(bl)
-				else:
-					self.bl = bl[:int(len(bl) / 2)]
-					assert self.bl == self.getParter(bl[int(len(bl) / 2):]), "ERROR: unmatchable pairs."
-					self.br = bl[int(len(bl) / 2):]
+		if isinstance(br_inbl, str): 
+			assert bl == self.getParter(br_inbl, identical=identical), "ERROR: unmatchable pairs."
+			self.br = br_inbl
+			return
+		if isinstance(br_inbl, bool) and br_inbl:
+			assert not self.isOneCh(bl), "ERROR: cannot find another pair in bl."
+			self.bl = bl[:int(len(bl) / 2)]
+			assert self.bl == self.getParter(bl[int(len(bl) / 2):], identical=identical), "ERROR: unmatchable pairs."
+			self.br = bl[int(len(bl) / 2):]
+			return
+		# assert self.br == self.getParter(bl, identical=identical), "ERROR: unmatchable pairs."
+		self.br = self.getParter(bl, identical=identical)
 
 
 	def getParter(self, m:str, identical:bool=False)->str:
@@ -78,7 +76,7 @@ class PairMatcher:
 			parterr = re.findall(r'[(){}[\]<>]', m)
 			if parterr:
 				for i in parterr:
-					m = re.sub('\\'+i, self.parter[i], m)
+					m = re.sub('\\'+i, self.parter[i], m, count=1)
 		return m[::-1]
 
 	def getChIdx(self, s:str, ch:str)->list:
@@ -100,8 +98,8 @@ class PairMatcher:
 			 br:str|None=None, 
 			 out:Literal['default', 'sorted']='default', 
 			 f:str|None=None, 
-			 quietly:bool=True)-> Union[list[tuple], list[int]]:
-		f = open(os.devnull, 'w') if quietly else (open(f, 'w') if f else None)
+			 quietly:bool=False)-> Union[list[tuple], list[int]]:
+		f = open(os.devnull, 'w') if not quietly else (open(f, 'w') if f else None)
 		pair = []
 		if s is None: s = self.s
 		if bl is None and br is None: br = self.br; bl = self.bl
@@ -145,12 +143,12 @@ class PairMatcher:
 
 if __name__ == '__main__':
 	ss = 'fasfdsa() ()(()(fa(fa)fa()((asdf)fdas)))'
-	yy = PairMatcher(ss, bl='((')
-	print(yy.getPair(out='sorted'))
+	yy = PairMatcher(ss, bl='((', br_inbl=False)
+	print(yy.getPair(out='sorted', quietly=True))
 	print(' '.join([ss[i] for i in yy.getPair(out='sorted')]))
 
 	yy3 = PairMatcher(ss, bl='()')
-	print(yy3.getPair(out='sorted'))
+	print(yy3.getPair(out='sorted', quietly=True))
 	print(' '.join([ss[i] for i in yy3.getPair(out='sorted')]))
 
 	ss = 'fasfdsa "" "" "hello" "wofada"  " "'
@@ -158,7 +156,12 @@ if __name__ == '__main__':
 	print(yy1.getPair())
 	print(' '.join([ss[i] for i in yy1.getPair(out='sorted')]))
 
-
+	ss= 'fasdaf(fadsa( fadaf(fffff('
 	yy2 = PairMatcher(ss, bl='""',identical=True)
 	print(yy2.getPair(quietly=False))
 	print(' '.join([ss[i] for i in yy2.getPair(out='sorted')]))
+
+	ss= 'fasdaf(fadsa( fadaf(fffff('
+	yy4 = PairMatcher(ss, bl='(',identical=True)
+	print(yy4.getPair())
+	print(' '.join([ss[i] for i in yy4.getPair(out='sorted')]))
