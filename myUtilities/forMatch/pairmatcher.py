@@ -98,8 +98,8 @@ class PairMatcher:
 			 br:str|None=None, 
 			 out:Literal['default', 'sorted']='default', 
 			 f:str|None=None, 
-			 quietly:bool=False)-> Union[list[tuple], list[int]]:
-		f = open(os.devnull, 'w') if not quietly else (open(f, 'w') if f else None)
+			 quietly:bool=True)-> Union[list[tuple], list[int]]:
+		f = open(os.devnull, 'w') if quietly else (open(f, 'w') if f else None)
 		pair = []
 		if s is None: s = self.s
 		if bl is None and br is None: br = self.br; bl = self.bl
