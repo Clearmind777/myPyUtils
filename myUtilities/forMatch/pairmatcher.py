@@ -1,10 +1,11 @@
 import re
+import os
 import inspect
 import numpy as np
 from typing import Union, Literal, Callable, TypeVar
 
 class PairMatcher:
-	T = TypeVar('T')
+	# T = TypeVar('T')
 	s = ''
 	bl = '('
 	br = ')'
@@ -62,10 +63,6 @@ class PairMatcher:
 			if identical:
 				self.br = self.bl
 			else:
-				"""
-				1. " "		2. "" ""	3. " 	identical
-				4. ( (		5. ( "  	6. ( 	not identical
-				"""
 				if self.isOneCh(bl):
 					self.bl = bl
 					assert bl in self.parter.values(), "ERROR: unmatchable pairs."
@@ -97,14 +94,22 @@ class PairMatcher:
 		if bl is None and lr is None: bl = self.bl; br = self.br
 		return {'L': self.getChIdx(s=s, ch=bl), 'R': self.getChIdx(s=s, ch=br)}
 
-	def getPair(self, s:str=None, bl:str=None, br:str=None, out:Literal['default', 'sorted']='default')-> Union[list[tuple], list[int]]:
+	def getPair(self, s:str|None=None, 
+			 bl:str|None=None, 
+			 br:str|None=None, 
+			 out:Literal['default', 'sorted']='default', 
+			 f:str|None=None, 
+			 quietly:bool=True)-> Union[list[tuple], list[int]]:
+		f = open(os.devnull, 'w') if quietly else (open(f, 'w') if f else None)
 		pair = []
 		if s is None: s = self.s
 		if bl is None and br is None: br = self.br; bl = self.bl
-		print(50 * '-' + f"\nSTART Getting pair...\nSTRING:\t\t{s}\n" + f"MATCHING PAIRS:\t{bl}...{br}")
+		print(50 * '-' + f"\nSTART Getting pair...\nSTRING:\t\t{s}\n" + f"MATCHING PAIRS:\t{bl}...{br}", file=f)
 		if bl == br: 
 			idxs = self.getChIdx(s, bl)
-			if len(idxs) % 2 == 1 or len(idxs) == 0: print('ERR: Upaired Braket.'); exit(0)	# isPaired()
+			if len(idxs) == 0: print("Cannot find the pair", file=f); return pair
+			if len(idxs) % 2 == 1: print('ERR: Upaired Braket.', file=f); return pair	# isPaired()
+			print("\n......\tDONE\n" + "-" * 50, file=f)
 			if out == 'sorted': return idxs
 			else:
 				for i in range(0, len(idxs), 2):
@@ -123,7 +128,7 @@ class PairMatcher:
 	3   6		5   3   1
 			从最里边的左括号开始，匹配对应的右括号(即找到最邻近右括号，找到后其他dist舍弃)"""
 		idxs = self.getBktIdx(s, bl, br)
-		if not self.isPaired(idxs): print('ERR: Upaired Braket.'); exit(0)
+		if not self.isPaired(idxs): print('ERR: Upaired Braket.', file=f); return pair
 		lt_rv = np.array(idxs['L'][::-1])
 		rt = np.array(idxs['R'])
 		dist = np.subtract.outer(rt, lt_rv).astype(float)	# 得到括号间的字符距离(右括号 - 左括号)
@@ -133,7 +138,7 @@ class PairMatcher:
 			pair.append((int(lt_rv[min_dist_idx_row]), int(rt[i])))
 			#pair.append(int(lt_rv[min_dist_idx_row])); pair.append(int(rt[i]))
 			dist[:, min_dist_idx_row] = np.inf
-		print("\n......\tDONE\n" + "-" * 50)
+		print("\n......\tDONE\n" + "-" * 50, file=f)
 		if out == 'sorted': return sorted([item for pairr in pair for item in pairr])
 		return pair
 
@@ -154,5 +159,5 @@ if __name__ == '__main__':
 
 
 	yy2 = PairMatcher(ss, bl='""',identical=True)
-	print(yy2.getPair())
+	print(yy2.getPair(quietly=False))
 	print(' '.join([ss[i] for i in yy2.getPair(out='sorted')]))
